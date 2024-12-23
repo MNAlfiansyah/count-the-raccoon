@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Count the Raccoons!</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Move overlay and custom alert outside of game-content -->
+    <div class="overlay"></div>
+    <div class="custom-alert">
+        <h2></h2>
+        <p></p>
+        <button class="alert-btn">Continue</button>
+    </div>
+
+    <!-- Add countdown element -->
+    <div class="countdown">3</div>
+
+    <!-- Main Menu -->
+    <div id="main-menu">
+        <div class="banner-container">
+            <img src="./assets/banner.jpeg" alt="Raccoon Game Banner" class="banner-image">
+        </div>
+        <div class="logo-container">
+            <h1 class="game-title">Count the Raccoons!</h1>
+        </div>
+        <div class="menu-buttons">
+            <button class="menu-btn" onclick="startGame()">Play Game</button>
+            <button class="menu-btn" onclick="showInstructions()">How to Play</button>
+            <button class="menu-btn" onclick="showHighScores()">High Scores</button>
+        </div>
+    </div>
+
+    <!-- Game Content -->
+    <div id="game-content">
+        <button class="back-btn" onclick="backToMenu()">Back to Menu</button>
+        <h1>Count the Raccoons!</h1>
+        <div id="score-display">Level: 1 | Press SPACE to count raccoons!</div>
+        <div id="game-container"></div>
+    </div>
+
+    <audio id="bgMusic" loop>
+        <source src="./assets/bg-sound.mp3" type="audio/mp3">
+    </audio>
+
+    <script>
+        let currentLevel = 1;
+        let actualRaccoonCount = 0;
+        let userCount = 0;
+        let gameActive = false;
+        let animals = [
+            'assets/raccoon.png',
+            'assets/kami.png',
+            'assets/initia.png',
+            'assets/chamelleon.png',
+            'assets/squirrel.png'
+        ];
+
+        const gameContainer = document.getElementById('game-container');
+        const scoreDisplay = document.getElementById('score-display');
+
+        function resetGame() {
+            // Don't reset currentLevel here unless going back to menu
+            actualRaccoonCount = 0;
+            userCount = 0;
+            activeAnimals = 0;
+            gameActive = false;
+            
+            // Clear any remaining animals and ongoing animations
+            gameContainer.innerHTML = '';
+            
+            // Clear ALL timeouts and intervals
+            const highestTimeoutId = setTimeout(";");
+            for (let i = 0; i < highestTimeoutId; i++) {
+                clearTimeout(i);
+                clearInterval(i);
+            }
+            
+            // Clear any existing animation frames
+            const highestAnimationFrame = requestAnimationFrame(() => {});
+            for (let i = 1; i < highestAnimationFrame; i++) {
+                cancelAnimationFrame(i);
+            }
+            
+            // Reset score display with current level
+            scoreDisplay.textContent = `Level: ${currentLevel} | Count: ${userCount}`;
+            
+            // Hide any visible alerts
+            const alert = document.querySelector('.custom-alert');
+            const overlay = document.querySelector('.overlay');
+            alert.style.display = 'none';
+            overlay.style.display = 'none';
+            
+            // Reset countdown
+            const countdown = document.querySelector('.countdown');
+            countdown.style.display = 'none';
+            countdown.textContent = '3';
+        }
+
+        function startLevel() {
+            // Clear any existing animals and animations first
+            resetGame();
+            
+            gameActive = true;
+            actualRaccoonCount = 0;
+            userCount = 0;
+            scoreDisplay.textContent = `Level: ${currentLevel} | Count: ${userCount}`;
+            
+            const totalAnimals = 5 + (currentLevel * 2);
+            
+            let animalSequence = new Array(totalAnimals).fill(false);
+            const minRaccoons = Math.max(2, Math.floor(totalAnimals * 0.2));
+            const maxRaccoons = Math.ceil(totalAnimals * Math.max(0.3, 0.8 - (currentLevel * 0.05)));
+            const raccoonCount = Math.floor(Math.random() * (maxRaccoons - minRaccoons + 1)) + minRaccoons;
+            
+            for(let i = 0; i < raccoonCount; i++) {
+                let position;
+                do {
+                    position = Math.floor(Math.random() * totalAnimals);
+                } while(animalSequence[position]);
+                animalSequence[position] = true;
+            }
+            
+            // Clear any existing spawn sequence
+            const highestTimeoutId = setTimeout(";");
+            for (let i = 0; i < highestTimeoutId; i++) {
+                clearTimeout(i);
+            }
+            
+            // New random spawn timing
+            const gameDuration = 10000; // 10 seconds total for level
+            
+            animalSequence.forEach((isRaccoon, index) => {
+                // Random spawn time within the game duration
+                const randomDelay = Math.random() * (gameDuration * 0.7); // Use 70% of total time for spawns
+                
+                setTimeout(() => {
+                    spawnAnimal(isRaccoon);
+                }, randomDelay);
+            });
+
+            // End level after all animals have had time to cross
+            setTimeout(() => {
+                gameActive = false;
+            }, gameDuration);
+        }
+
+        function spawnAnimal(isRaccoon) {
+            activeAnimals++;
+            const animal = document.createElement('div');
+            animal.className = 'animal';
+            
+            const containerHeight = gameContainer.offsetHeight;
+            const minY = 100;
+            const maxY = containerHeight - 80;
+            
+            const randomY = minY + Math.random() * (maxY - minY);
+            animal.style.top = randomY + 'px';
+            
+            // Random starting position from left side
+            const startX = -100 + (Math.random() * -50); // Varies start position slightly
+            animal.style.left = startX + 'px';
+            
+            const img = document.createElement('img');
+            img.src = isRaccoon ? animals[0] : animals[Math.floor(Math.random() * (animals.length - 1)) + 1];
+            animal.appendChild(img);
+            
+            if (isRaccoon) actualRaccoonCount++;
+            
+            gameContainer.appendChild(animal);
+            
+            let posX = startX;
+            const speed = 2.5 + Math.random() * 1.0;
+            const amplitude = 4 + Math.random() * 7;
+            const frequency = 0.002 + Math.random() * 0.002;
+            let startTime = Date.now();
+            let initialY = parseFloat(animal.style.top);
+            
+            function animate() {
+                const elapsed = Date.now() - startTime;
+                posX += speed;
+                
+                const newY = initialY + Math.sin(elapsed * frequency) * amplitude;
+                
+                animal.style.left = posX + 'px';
+                animal.style.top = newY + 'px';
+                
+                if (posX < gameContainer.offsetWidth + 60) {
+                    requestAnimationFrame(animate);
+                } else {
+                    animal.remove();
+                    activeAnimals--;
+                    if (activeAnimals === 0 && !gameActive) {
+                        checkAnswer();
+                    }
+                }
+            }
+            
+            requestAnimationFrame(animate);
+        }
+
+        function showCustomAlert(title, message, isSuccess) {
+            const alert = document.querySelector('.custom-alert');
+            const overlay = document.querySelector('.overlay');
+            
+            // Reset any existing content
+            if (alert.querySelector('ul')) {
+                alert.querySelector('ul').remove();
+                const p = document.createElement('p');
+                alert.insertBefore(p, alert.querySelector('.alert-btn'));
+            }
+            
+            alert.querySelector('h2').textContent = title;
+            
+            // Check if it's instructions to use list or regular message
+            if (title === "How to Play") {
+                const list = document.createElement('ul');
+                list.className = 'instructions-list';
+                
+                const instructions = [
+                    "Watch for raccoons moving across the screen",
+                    "Press SPACE each time you see a raccoon",
+                    "Avoid counting other animals",
+                    "Complete each level to advance",
+                    "Be careful - one mistake sends you back to level 1!"
+                ];
+
+                instructions.forEach(instruction => {
+                    const li = document.createElement('li');
+                    li.textContent = instruction;
+                    list.appendChild(li);
+                });
+
+                const oldP = alert.querySelector('p');
+                alert.replaceChild(list, oldP);
+            } else {
+                alert.querySelector('p').textContent = message;
+            }
+            
+            alert.className = 'custom-alert ' + (isSuccess ? 'success' : 'error');
+            overlay.style.display = 'block';
+            alert.style.display = 'block';
+
+            const continueBtn = alert.querySelector('.alert-btn');
+            continueBtn.onclick = () => {
+                overlay.style.display = 'none';
+                alert.style.display = 'none';
+                // Don't start level if we're on main menu
+                if (!document.getElementById('main-menu').style.display || 
+                    document.getElementById('main-menu').style.display === 'none') {
+                    startCountdown();
+                }
+            };
+        }
+
+        function checkAnswer() {
+            if (userCount === actualRaccoonCount) {
+                showCustomAlert(
+                    "Great Job!", 
+                    `Correct! Moving to level ${currentLevel + 1}`,
+                    true
+                );
+                currentLevel++;
+                scoreDisplay.textContent = `Level: ${currentLevel} | Count: ${userCount}`;
+            } else {
+                showCustomAlert(
+                    "Oops!", 
+                    `Wrong! The correct count was ${actualRaccoonCount}. Back to level 1`,
+                    false
+                );
+                currentLevel = 1;
+                scoreDisplay.textContent = `Level: ${currentLevel} | Count: ${userCount}`;
+            }
+        }
+
+        document.addEventListener('keydown', (e) => {
+            if (e.code === 'Space') {
+                if (!gameActive) {
+                    startLevel();
+                } else {
+                    userCount++;
+                    scoreDisplay.textContent = `Level: ${currentLevel} | Count: ${userCount}`;
+                }
+            }
+        });
+
+        function startGame() {
+            resetGame();
+            
+            document.getElementById('main-menu').style.display = 'none';
+            document.getElementById('game-content').style.display = 'block';
+            
+            console.log('Game started, attempting music start');
+            startMusic(); // Try to start music when game starts
+            
+            startCountdown();
+        }
+
+        function showInstructions() {
+            showCustomAlert(
+                "How to Play",
+                "", // Empty message since we're using list
+                true
+            );
+        }
+
+        function showHighScores() {
+            showCustomAlert(
+                "High Scores",
+                "Coming Soon!\nCan you become the ultimate raccoon counter?",
+                true
+            );
+        }
+
+        function backToMenu() {
+            document.getElementById('main-menu').style.display = 'flex';
+            document.getElementById('game-content').style.display = 'none';
+            // Reset game when going back to menu
+            resetGame();
+        }
+
+        function startCountdown() {
+            const countdown = document.querySelector('.countdown');
+            let count = 3;
+            countdown.textContent = count;
+            countdown.style.display = 'block';
+
+            const timer = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    countdown.textContent = count;
+                } else if (count === 0) {
+                    countdown.textContent = 'GO!';
+                } else {
+                    clearInterval(timer);
+                    countdown.style.display = 'none';
+                    startLevel();
+                }
+            }, 1000);
+        }
+
+        // Update music initialization
+        const bgMusic = document.getElementById('bgMusic');
+        
+        // Set initial music state
+        let isMusicOn = false; // Start with false to ensure proper state tracking
+        
+        // Create and style music button
+        const musicBtn = document.createElement('button');
+        musicBtn.className = 'music-btn';
+        musicBtn.innerHTML = '🔊 Music: Off'; // Start with Off state
+        document.body.appendChild(musicBtn);
+
+        // Function to start music
+        function startMusic() {
+            if (!isMusicOn) { // Only start if not already playing
+                bgMusic.play()
+                    .then(() => {
+                        isMusicOn = true;
+                        musicBtn.innerHTML = '🔊 Music: On';
+                        bgMusic.volume = 0.3;
+                        console.log('Music started successfully');
+                    })
+                    .catch(error => {
+                        console.log("Music start failed:", error);
+                        isMusicOn = false;
+                        musicBtn.innerHTML = '🔊 Music: Off';
+                    });
+            }
+
+        }
+
+        // Function to stop music
+        function stopMusic() {
+            bgMusic.pause();
+            bgMusic.currentTime = 0;
+            isMusicOn = false;
+            musicBtn.innerHTML = '🔊 Music: Off';
+        }
+
+        // Set audio properties
+        bgMusic.loop = true;
+        bgMusic.volume = 0.3;
+        bgMusic.preload = 'auto';
+        
+        // Improved music toggle functionality
+        musicBtn.onclick = () => {
+            if (!isMusicOn) {
+                startMusic();
+            } else {
+                stopMusic();
+            }
+            console.log('Music state:', isMusicOn); // Debug log
+        };
+
+        // Try to start music on various events
+        document.addEventListener('DOMContentLoaded', () => {
+            console.log('DOM loaded, attempting music start');
+            startMusic();
+        });
+
+        window.addEventListener('load', () => {
+            console.log('Window loaded, attempting music start');
+            startMusic();
+        });
+
+        // Start music on first interaction
+        document.addEventListener('click', function initMusic() {
+            console.log('First click, attempting music start');
+            startMusic();
+            document.removeEventListener('click', initMusic);
+        }, { once: true });
+
+        // Debug function to check audio state
+        function checkAudioState() {
+            console.log('Music playing:', !bgMusic.paused);
+            console.log('Current time:', bgMusic.currentTime);
+            console.log('Volume:', bgMusic.volume);
+            console.log('Music state:', isMusicOn);
+        }
+
+        // Check audio state periodically
+        setInterval(checkAudioState, 5000);
+
+        const copyright = document.createElement('div');
+        copyright.className = 'copyright';
+        copyright.innerHTML = '© 2024 <a href="https://github.com/mnalfiansyah" target="_blank">Dolpin</a>';
+        document.body.appendChild(copyright);
+    </script>
+</body>
+</html>
